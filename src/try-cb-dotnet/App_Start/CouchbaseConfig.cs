@@ -5,6 +5,7 @@ using System.Linq;
 using Couchbase;
 using Couchbase.Configuration.Client;
 using Couchbase.Authentication;
+using Couchbase.Core;
 
 namespace try_cb_dotnet
 {
@@ -25,29 +26,68 @@ namespace try_cb_dotnet
             var couchbaseServer = ConfigurationManager.AppSettings.Get("CouchbaseServer");
             var username = ConfigurationManager.AppSettings.Get("CouchbaseUser");
             var password = ConfigurationManager.AppSettings.Get("CouchbasePassword");
-
-            //ClusterHelper.Initialize(new ClientConfiguration
-            //{
-            //    Servers = new List<Uri> { new Uri(couchbaseServer) }
-            //});
-
             var bucketName = ConfigurationManager.AppSettings.Get("CouchbaseTravelBucket");
 
             var cluster = new Cluster(new ClientConfiguration
             {
-                Servers = new List<Uri> { new Uri("http://localhost") }
+                Servers = new List<Uri> { new Uri("http://localhost:8091") }
             });
 
             var authenticator = new PasswordAuthenticator(username, password);
             cluster.Authenticate(authenticator);
-            var bucket = cluster.OpenBucket(bucketName);
+            ClusterHelper.Initialize();
+            var bucket = cluster.OpenBucket(bucketName, password);
+
+
+            //var config = new ClientConfiguration
+            //{
+            //    Servers = new List<Uri>() { new Uri("http://localhost:8091/") },
+            //    UseSsl = true,
+            //    DefaultOperationLifespan = 1000,
+            //    BucketConfigs = new Dictionary<string, BucketConfiguration>
+            //    {
+            //         {"travel-sample", new BucketConfiguration
+            //           {
+            //                BucketName = "travel-sample",
+            //                UseSsl = false,
+            //                Password = "P@ssw0rd",
+            //                DefaultOperationLifespan = 2000,
+            //                PoolConfiguration = new PoolConfiguration
+            //                {
+            //                    MaxSize = 10,
+            //                    MinSize = 5,
+            //                    SendTimeout = 12000
+            //                }
+            //          }
+            //        }
+            //    }
+            //};
+
+
+            //using (var cluster_ = new Cluster(config))
+            //{
+            //    IBucket bucket_ = null;
+            //    try
+            //    {
+            //        //bucket_ = cluster.OpenBucket();
+            //        bucket_ = cluster.OpenBucket(bucketName, password);
+            //        //use the bucket here
+            //    }
+            //    finally
+            //    {
+            //        if (bucket_ != null)
+            //        {
+            //            cluster.CloseBucket(bucket_);
+            //        }
+            //    }
+            //}
 
             EnsureIndexes(bucketName, username, password);
         }
 
         private static void EnsureIndexes(string bucketName, string username, string password)
         {
-            var bucket = ClusterHelper.GetBucket(bucketName);
+            var bucket = ClusterHelper.GetBucket(bucketName, password);
             var bucketManager = bucket.CreateManager(username, password);
 
             var indexes = bucketManager.ListN1qlIndexes();
